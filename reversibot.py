@@ -139,7 +139,7 @@ class Player:
             return moves[maxidx], maxeval
         else:
             resval = alpha
-            resmov = (-1,-1)
+            resmov = [-1,-1]
             if len(moves) == 0:
                 bmov,tmpval = self.alphaBeta(game,-color,-beta,-alpha,depth-1,isfinal)
                 return resmov,-tmpval
@@ -181,13 +181,13 @@ class Player:
         if isrand:
             moves = self.game.getValidMov(self.color)
             if len(moves) == 0:
-                return -1, -1
+                return -1, -1, -2000
             return random.choice(moves)
         else:
             if self.isTrain:
                 moves = self.game.getValidMov(self.color)
                 if len(moves) == 0:
-                    return -1, -1
+                    return -1, -1, -2000
                 resvals = []
                 for mov in moves:
                     newgame = copy.deepcopy(self.game)
@@ -212,7 +212,7 @@ class Player:
                     bestMov,bestVal = self.alphaBeta(self.game,self.color,-2000,2000,62-FinalTurn,True)
             print("Val:"+str(bestVal))
             print(bestMov)
-            return bestMov,bestVal
+            return bestMov, bestVal
     
     def playTurn(self,turn,isrand=False):
         bestMov,bestVal = self.searchPlace(turn,isrand)
