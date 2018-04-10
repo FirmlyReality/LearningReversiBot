@@ -193,8 +193,8 @@ class Player:
                 bestMov,val = self.alphaBeta(self.game,self.color,-2000,2000,maxd,False)
             else:
                 bestMov,val = self.alphaBeta(self.game,self.color,-2000,2000,62-FinalTurn,True)
-            print("Val:"+str(val))
-            print(bestMov)
+            #print("Val:"+str(val))
+            #print(bestMov)
             return bestMov
     
     def playTurn(self,turn,isrand=False):
@@ -323,9 +323,9 @@ def train_model(sess,model,boards,winner):
         #print(evals)
     for epoch in range(max_epoch):
         sess.run(model.train_step,feed_dict={model.x:boards, model.y_:ys,model.keep_prob:0.5})
-    for b in boards:
-        evals = sess.run(model.y, feed_dict={model.x:[b], model.y_:[[1]], model.keep_prob:1.0})
-        print(evals)
+    #for b in boards:
+        #evals = sess.run(model.y, feed_dict={model.x:[b], model.y_:[[1]], model.keep_prob:1.0})
+        #print(evals)
     
 if __name__ == '__main__': 
     game = Game()
@@ -359,28 +359,29 @@ if __name__ == '__main__':
             #if n > 450:
                 #isrand = False
             while not game.isEnd():
-                if player1.playTurn(turn):
+                if player1.playTurn(turn) and turn <= 54:
                     boards.append(copy.copy(game.board))
-                print(str(turn)+": ")
-                print(game.board)
-                print(game.blackPieceCnt)
-                print(game.whitePieceCnt)
+                #print(str(turn)+": ")
+                #print(game.board)
+                #print(game.blackPieceCnt)
+                #print(game.whitePieceCnt)
                 turn += 1    
-                if player2.playTurn(turn):
+                if player2.playTurn(turn) and turn <= 54:
                     boards.append(copy.copy(game.board))
-                print(str(turn)+": ")
-                print(game.board)
-                print(game.blackPieceCnt)
-                print(game.whitePieceCnt)
+                #print(str(turn)+": ")
+                #print(game.board)
+                #print(game.blackPieceCnt)
+                #print(game.whitePieceCnt)
                 turn += 1
                 #time.sleep(2)
+            #print(len(boards))
             blackboards = ch2FeedBoards(boards,1)
             #print(blackboards[50])
             #his.append(blackboards)
             winner = game.getWinner()
             #his_y.append(winner)
             train_model(sess,model,blackboards,winner)
-            print(" ")
+            #print(" ")
             whiteboards = ch2FeedBoards(boards,-1)
             #print(whiteboards[50])
             #his.append(whiteboards)
