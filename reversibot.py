@@ -400,11 +400,12 @@ def ch2FeedBoards(boards):
     
     return numpy.array(boards).reshape(-1,8,8,1) + 2
 
-def train_model(sess,model,boards,winner):
+def train_model(sess,model,boards,cntdis):
     #print(boards.shape)
     #print(boards[0])
     ys = numpy.zeros((boards.shape[0],1))
-    score = 750 + 250 * winner
+    score = 750 + 10 * cntdis
+    #print(score)
     dis = 1
     max_epoch = 3
     for i in range(len(ys)):
@@ -455,7 +456,7 @@ if __name__ == '__main__':
         if game.isEnd():
             trainboards = ch2FeedBoards(boards)
             winner = game.getWinner()
-            train_model(sess,model,trainboards,winner)
+            train_model(sess,model,trainboards, game.blackPieceCnt - game.whitePieceCnt)
             data = {}
             ret = sess.run(model.conW)
             data["conW"] = [w.tolist() for w in ret]
