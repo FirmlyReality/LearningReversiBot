@@ -8,11 +8,11 @@ import zlib
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 DIR = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)) # 方向向量
 timeFormat = "%Y%m%d %H:%M:%S"
-bestProb = 0.9
-maxd = 1
-FinalTurn = 55
+bestProb = 0.95
+maxd = 4
+FinalTurn = 53
 maxThreads = 2
-MaxTime = 25.5
+MaxTime = 5.5
 LearningRate = 0.0005
 isReceiveData = True
 
@@ -243,7 +243,7 @@ class Player:
                         maxidx = t[1]
                     resvals.append(val)
                 movi += maxThreads
-            if isTimeup():
+            if isTimeup() and nowd != maxd - 1:
                 break
             random.seed(time.time())
             randint = random.randint(1,100)
@@ -402,20 +402,20 @@ def ch2FeedBoards(boards):
 def train_model(sess,model,boards,vals):
     max_epoch = 10
     ys = numpy.array(vals).reshape((-1,1))
-    print(ys)
-    evals = sess.run(model.y, feed_dict={model.x:boards, model.y_:numpy.zeros(ys.shape), model.keep_prob:1.0})
+    #print(ys)
+    #evals = sess.run(model.y, feed_dict={model.x:boards, model.y_:numpy.zeros(ys.shape), model.keep_prob:1.0})
     #print(evals)
     #print(evals-ys)
     #print(" ")
-    print(numpy.sum((evals-ys)*(evals-ys)))
+    #print(numpy.sum((evals-ys)*(evals-ys)))
     #print(" ")
     for epoch in range(max_epoch):
         sess.run(model.train_step,feed_dict={model.x:boards, model.y_:ys, model.keep_prob:1.0})
             
-    Aevals = sess.run(model.y, feed_dict={model.x:boards, model.y_:numpy.zeros(ys.shape), model.keep_prob:1.0})
+    #Aevals = sess.run(model.y, feed_dict={model.x:boards, model.y_:numpy.zeros(ys.shape), model.keep_prob:1.0})
     #print(Aevals)
     #print(Aevals-evals)
-    print(numpy.sum((Aevals-ys)*(Aevals-ys)))
+    #print(numpy.sum((Aevals-ys)*(Aevals-ys)))
     
 if __name__ == '__main__': 
     game = Game()
@@ -478,6 +478,8 @@ if __name__ == '__main__':
             res["globaldata"] = json.dumps(data)
             res["debug"]["evals"] = evals
             isTrained = True
+        elif game.isEnd():
+            res["globaldata"] = json.dumps(initData)
         res["debug"]["time"] = time.time() - startTime
         res["debug"]["isTrained"] = isTrained
         res["debug"]["isLoad"] = isLoad
