@@ -8,17 +8,19 @@ import struct
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 DIR = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)) # 方向向量
 timeFormat = "%Y%m%d %H:%M:%S"
-bestProb = 1.0
-maxd = 4
-FinalTurn = 52
+bestProb = 0.9
+maxd = 1
+FinalTurn = 55
 maxThreads = 2
-MaxTime = 5.6
+MaxTime = 45.6
 LearningRate = 0.0005
 isReceiveData = True
 InitMaxValInt = 100
 dataFile = "data/para.data"
 
 initData = {}
+trainlag = 4
+traindis = [0.4,0.3,0.2,0.1]
 
 class Game:
     
@@ -441,7 +443,7 @@ def train_model(sess,model,boards,vals):
         #print(trainys)
             #tmpy = sess.run(model.y,feed_dict={model.x:[trainboards[i]], model.y_:[[0]], model.keep_prob:1.0})
             #print(tmpy)
-    testtime1 = time.time()        
+    #testtime1 = time.time()        
     Aevals = sess.run(model.y, feed_dict={model.x:boards, model.y_:numpy.zeros(ys.shape), model.keep_prob:1.0})
     print(Aevals)
     #print(time.time()-testtime1)
@@ -458,6 +460,7 @@ if __name__ == '__main__':
         if isReceiveData:
             initData = json.loads(datafile.read().decode())
     except Exception as err:
+        print(err)
         pass
     #print(initData["conW"][0][0][0][0])
     if len(sys.argv) < 2:
@@ -535,9 +538,9 @@ if __name__ == '__main__':
             resfile = open("result.txt","a+")
             game = Game()
             boards = []
-            vals = []
+            #vals = []
             boards.append(copy.copy(game.board))
-            vals.append(1000.0)
+            #vals.append(1000.0)
             player1 = Player(1,game,model,sess,True)
             player2 = Player(-1,game,model,sess,True)
             turn = 1
@@ -549,7 +552,7 @@ if __name__ == '__main__':
                 if bestMov[0] >= 0:
                     game.place(bestMov[0],bestMov[1],player1.color)
                     boards.append(copy.copy(game.board))
-                    vals.append(bestVal)
+                    #vals.append(bestVal)
                 #print(str(turn)+": ")
                 #print(game.board)
                 '''print(bestMov)
@@ -559,7 +562,7 @@ if __name__ == '__main__':
                 if bestMov[0] >= 0:                   
                     game.place(bestMov[0],bestMov[1],player2.color)
                     boards.append(copy.copy(game.board))
-                    vals.append(2000-bestVal)
+                    #vals.append(2000-bestVal)
                 #print(str(turn)+": ")
                 #print(game.board)
                 '''print(bestMov)
@@ -568,15 +571,19 @@ if __name__ == '__main__':
             #print(boards)
             #boards.append(copy.copy(game.board))
             blackboards = ch2FeedBoards(boards)
-            #cntScore = 1000 + 500 * game.getWinner() #10 * (game.blackPieceCnt-game.whitePieceCnt)
-            '''vals = sess.run(model.y, feed_dict={model.x:blackboards, model.y_:numpy.zeros((blackboards.shape[0],1)), model.keep_prob:1.0})
+            cntScore = 1000 + 10 * (game.blackPieceCnt-game.whitePieceCnt)
+            vals = sess.run(model.y, feed_dict={model.x:blackboards, model.y_:numpy.zeros((blackboards.shape[0],1)), model.keep_prob:1.0})
             vals = vals.flatten().tolist()
-            nVal = len(vals)
-            for i in range(nVal):
-                if nVal - i <= 7:
-                    vals[i] = cntScore
-                else:
-                    vals[i] = vals[i+2]'''
+            for i in range(1,8):
+                vals[-i] = cntScore
+            tmpVals = []
+            for i in range(trainlag):
+                tmpVals.append(numpy.hstack([vals[i+1:],vals[-i-1:]]))
+                #print(tmpVals[i])
+            vals = numpy.zeros(len(vals))
+            for i in range(trainlag):
+                vals += traindis[i] * tmpVals[i]
+            #print(vals)
             #print(boards)
             #print(vals)
             #print(len(boards))
