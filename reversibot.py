@@ -8,11 +8,11 @@ import struct
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 DIR = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)) # 方向向量
 timeFormat = "%Y%m%d %H:%M:%S"
-bestProb = 0.9
-maxd = 1
-FinalTurn = 55
+bestProb = 1.0
+maxd = 4
+FinalTurn = 52
 maxThreads = 2
-MaxTime = 45.6
+MaxTime = 5.6
 LearningRate = 0.0005
 isReceiveData = True
 InitMaxValInt = 100
