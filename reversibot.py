@@ -15,12 +15,12 @@ maxThreads = 2
 MaxTime = 5.6
 LearningRate = 0.0005
 isReceiveData = True
-InitMaxValInt = 100
-dataFile = "data/para.data"
+InitMaxValInt = 500
+dataFile = "data/onlinePara.data"
 
-initData = {}
-trainlag = 4
-traindis = [0.4,0.3,0.2,0.1]
+initData = {"conW":[[[[0]]]]}
+#trainlag = 4
+#traindis = [0.1,0.1,0.1,0.7]
 
 class Game:
     
@@ -196,7 +196,7 @@ class Player:
                             tmpval = -tmpval
                     else:
                         bmov,tmpval = self.alphaBeta(gamelist[idx],-color,-beta,-resval,depth-1,isfinal)
-                        tmpval = -tmpval
+                        tmpval = -tmpval                   
                     if tmpval > resval:
                         resmov = moves[idx]
                         resval = tmpval
@@ -204,7 +204,7 @@ class Player:
                     if resval >= beta:
                         return resmov, resval
                     #if resval > 1000 and i > 4:
-                        #return resmov, resval                     
+                        #return resmov, resval
                 return resmov, resval
         
         def run(self):
@@ -395,21 +395,22 @@ def initGame(game,fullInput):
     responses = fullInput["responses"]
     myColor = 1
     nowturn = 0
+    boards.append(copy.copy(game.board))
     if requests[0]["x"] >= 0:
         myColor = -1
-        boards.append(copy.copy(game.board))
         game.place(requests[0]["x"], requests[0]["y"], -myColor)
+        boards.append(copy.copy(game.board))
     else:
         nowturn -= 1
     turn = len(responses)
     nowturn += 2*(turn+1)
     for i in range(turn):
         if responses[i]["x"] >= 0: 
+            game.place(responses[i]["x"], responses[i]["y"], myColor)        
             boards.append(copy.copy(game.board))  
-            game.place(responses[i]["x"], responses[i]["y"], myColor)
         if requests[i+1]["x"] >= 0:
+            game.place(requests[i + 1]["x"], requests[i + 1]["y"], -myColor)             
             boards.append(copy.copy(game.board))
-            game.place(requests[i + 1]["x"], requests[i + 1]["y"], -myColor)     
     return myColor,game,nowturn,boards
 
 def ch2FeedBoards(boards):   
@@ -418,7 +419,7 @@ def ch2FeedBoards(boards):
 def train_model(sess,model,boards,vals):
     max_epoch = 5
     ys = numpy.array(vals).reshape((-1,1))
-    print(ys)
+    #print(ys)
     evals = sess.run(model.y, feed_dict={model.x:boards, model.y_:numpy.zeros(ys.shape), model.keep_prob:1.0})
     #print(evals)
     if (evals[0][0] > 1000 + InitMaxValInt and ys[-1] > 1000) or (evals[0][0] < 1000 - InitMaxValInt and ys[-1] < 1000):
@@ -430,13 +431,14 @@ def train_model(sess,model,boards,vals):
         max_epoch = 15
     elif sumdis > 250000:
         max_epoch = 10
-    print(" ")
-    trainboards = boards[1:]
-    trainys = ys[1:]
+    #print(" ")
+    trainboards = boards[:]
+    trainys = ys[:]
     for epoch in range(max_epoch):
+        #tmpys = [ys[-1]]
         #for i in range(trainboards.shape[0]-1,-1,-1):
         sess.run(model.train_step,feed_dict={model.x:trainboards, model.y_:trainys, model.keep_prob:1.0})
-        #tmpys = sess.run(model.y,feed_dict={model.x:trainboards, model.y_:numpy.zeros(trainys.shape), model.keep_prob:1.0})
+        #tmpys = sess.run(model.y,feed_dict={model.x:[trainboards[i]], model.y_:[[0]], model.keep_prob:1.0})
         #trainys = numpy.vstack([tmpys[1:],ys[-1]])
         #for i in range(8):
             #trainys[-i] = ys[-i]
@@ -445,13 +447,14 @@ def train_model(sess,model,boards,vals):
             #print(tmpy)
     #testtime1 = time.time()        
     Aevals = sess.run(model.y, feed_dict={model.x:boards, model.y_:numpy.zeros(ys.shape), model.keep_prob:1.0})
-    print(Aevals)
+    #print(Aevals)
     #print(time.time()-testtime1)
     #print(Aevals-evals)
-    print(sumdis)
-    print(max_epoch)
-    print(numpy.sum((Aevals-ys)*(Aevals-ys)))
-    print(Aevals[0][0])
+    #print(sumdis)
+    #print(max_epoch)
+    #print(numpy.sum((Aevals-ys)*(Aevals-ys)))
+    #print(Aevals[0][0])
+    return Aevals
     
 if __name__ == '__main__': 
     game = Game()
@@ -483,28 +486,29 @@ if __name__ == '__main__':
         
         isTrained = False
         if bestMov[0] >= 0:
-            boards.append(copy.copy(game.board))
             game.place(bestMov[0],bestMov[1],myColor)
+            boards.append(copy.copy(game.board))
         offmoves = game.getValidMov(-myColor)
         if len(offmoves) == 1:
+            game.place(offmoves[0][0],offmoves[0][1],-myColor)       
             boards.append(copy.copy(game.board))
-            game.place(offmoves[0][0],offmoves[0][1],-myColor)
         #print(len(boards))
-        #print(boards[-1])
-        '''if game.isEnd(): #and game.getWinner() != myColor:
-            boards.append(copy.copy(game.board))
+        #print(boards)
+        if game.isEnd() and game.getWinner() != myColor:
             trainboards = ch2FeedBoards(boards)
             #winner = game.getWinner()
             evals = sess.run(model.y, feed_dict={model.x:trainboards, model.y_:numpy.zeros((trainboards.shape[0],1)), model.keep_prob:1.0})
             evals = evals.flatten().tolist()
+            #evals = numpy.hstack([evals[4:], evals[-4:]])
             cntScore = 1000 + 10 * (game.blackPieceCnt - game.whitePieceCnt)
             nVal = len(evals)
             for i in range(nVal):
-                if nVal - i <= 6:
+                if nVal - i <= 12:
                     evals[i] = cntScore
                 else:
-                    evals[i] = evals[i+1]
-            train_model(sess,model,trainboards, evals)
+                    evals[i] = evals[i+4]
+            evals[0] = 1000
+            evals = train_model(sess,model,trainboards, evals)
             data = {}
             ret = sess.run(model.conW)
             data["conW"] = [w.tolist() for w in ret]
@@ -515,11 +519,14 @@ if __name__ == '__main__':
             ret = sess.run(model.bs)
             data["fcb"] = [b.tolist() for b in ret]
             data["updateTime"] = datetime.datetime.now().strftime(timeFormat)
-            res["globaldata"] = json.dumps(data)
-            res["debug"]["evals"] = evals
+            res["debug"]["evals"] = evals.flatten().tolist()
+            try:
+                wbfile = open(dataFile,"wb")          
+                wbfile.write(json.dumps(data).encode(encoding='utf-8'))
+                wbfile.close()
+            except Exception as err:
+                isTrained = False
             isTrained = True
-        #elif game.isEnd():
-            #res["globaldata"] = json.dumps(initData)'''
         res["debug"]["time"] = time.time() - startTime
         res["debug"]["isTrained"] = isTrained
         res["debug"]["isLoad"] = isLoad
@@ -538,9 +545,9 @@ if __name__ == '__main__':
             resfile = open("result.txt","a+")
             game = Game()
             boards = []
-            #vals = []
+            vals = []
             boards.append(copy.copy(game.board))
-            #vals.append(1000.0)
+            vals.append(1000.0)
             player1 = Player(1,game,model,sess,True)
             player2 = Player(-1,game,model,sess,True)
             turn = 1
@@ -552,7 +559,7 @@ if __name__ == '__main__':
                 if bestMov[0] >= 0:
                     game.place(bestMov[0],bestMov[1],player1.color)
                     boards.append(copy.copy(game.board))
-                    #vals.append(bestVal)
+                    vals.append(bestVal)
                 #print(str(turn)+": ")
                 #print(game.board)
                 '''print(bestMov)
@@ -562,7 +569,7 @@ if __name__ == '__main__':
                 if bestMov[0] >= 0:                   
                     game.place(bestMov[0],bestMov[1],player2.color)
                     boards.append(copy.copy(game.board))
-                    #vals.append(2000-bestVal)
+                    vals.append(2000-bestVal)
                 #print(str(turn)+": ")
                 #print(game.board)
                 '''print(bestMov)
@@ -571,7 +578,7 @@ if __name__ == '__main__':
             #print(boards)
             #boards.append(copy.copy(game.board))
             blackboards = ch2FeedBoards(boards)
-            cntScore = 1000 + 10 * (game.blackPieceCnt-game.whitePieceCnt)
+            '''cntScore = 1000 + 10 * (game.blackPieceCnt-game.whitePieceCnt)
             vals = sess.run(model.y, feed_dict={model.x:blackboards, model.y_:numpy.zeros((blackboards.shape[0],1)), model.keep_prob:1.0})
             vals = vals.flatten().tolist()
             for i in range(1,8):
@@ -582,7 +589,7 @@ if __name__ == '__main__':
                 #print(tmpVals[i])
             vals = numpy.zeros(len(vals))
             for i in range(trainlag):
-                vals += traindis[i] * tmpVals[i]
+                vals += traindis[i] * tmpVals[i]'''
             #print(vals)
             #print(boards)
             #print(vals)
@@ -590,7 +597,7 @@ if __name__ == '__main__':
             #his.append(blackboards)
             #his_y.append(10*(game.blackPieceCnt-game.whitePieceCnt))
             train_model(sess,model,blackboards,vals)
-            if num % 50 == 0:
+            if num % 10 == 0:
                 wbfile = open(dataFile,"wb")
                 data = {}
                 res = sess.run(model.conW)
