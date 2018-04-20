@@ -15,8 +15,9 @@ maxThreads = 2
 MaxTime = 5.6
 LearningRate = 0.0005
 isReceiveData = True
+isOnlineTrain = True
 InitMaxValInt = 500
-dataFile = "data/onlinePara.data"
+dataFile = "data/onlineData"
 
 initData = {"conW":[[[[0]]]]}
 #trainlag = 4
@@ -458,13 +459,22 @@ def train_model(sess,model,boards,vals):
     
 if __name__ == '__main__': 
     game = Game()
-    try:
-        datafile = open(dataFile,"rb")
-        if isReceiveData:
-            initData = json.loads(datafile.read().decode())
-    except Exception as err:
-        print(err)
-        pass
+    if isReceiveData:
+        try:
+            if not isOnlineTrain:
+                datafile = open(dataFile,"rb")
+                tmpdata = datafile.read().decode()               
+                datafile.close()
+            else:
+                tmpdata = ""
+                for i in range(4):
+                    datafile = open(dataFile+str(i),"rb")
+                    tmpdata += datafile.read().decode()
+                    datafile.close()                    
+            initData = json.loads(tmpdata)
+        except Exception as err:
+            print(err)
+            pass
     #print(initData["conW"][0][0][0][0])
     if len(sys.argv) < 2:
         fullInput = json.loads(input())
@@ -503,10 +513,10 @@ if __name__ == '__main__':
             cntScore = 1000 + 10 * (game.blackPieceCnt - game.whitePieceCnt)
             nVal = len(evals)
             for i in range(nVal):
-                if nVal - i <= 12:
+                if nVal - i <= 11:
                     evals[i] = cntScore
                 else:
-                    evals[i] = evals[i+4]
+                    evals[i] = evals[i+3]
             evals[0] = 1000
             evals = train_model(sess,model,trainboards, evals)
             data = {}
@@ -520,12 +530,13 @@ if __name__ == '__main__':
             data["fcb"] = [b.tolist() for b in ret]
             data["updateTime"] = datetime.datetime.now().strftime(timeFormat)
             res["debug"]["evals"] = evals.flatten().tolist()
-            try:
-                wbfile = open(dataFile,"wb")          
-                wbfile.write(json.dumps(data).encode(encoding='utf-8'))
+            output = json.dumps(data)
+            splitlen = int(len(output)/4) + 1
+            output = [output[i:i+splitlen] for i in range(0,len(output),splitlen)]
+            for i in range(4):
+                wbfile = open(dataFile+str(i),"wb")          
+                wbfile.write(output[i].encode(encoding='utf-8'))
                 wbfile.close()
-            except Exception as err:
-                isTrained = False
             isTrained = True
         res["debug"]["time"] = time.time() - startTime
         res["debug"]["isTrained"] = isTrained
