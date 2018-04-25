@@ -12,12 +12,12 @@ bestProb = 1.0
 maxd = 4
 FinalTurn = 52
 maxThreads = 2
-MaxTime = 5.6
+MaxTime = 5.5
 LearningRate = 0.0005
 isReceiveData = True
-isOnlineTrain = True
+isOnlineTrain = False
 InitMaxValInt = 500
-dataFile = "data/onlineData"
+dataFile = "data/para.data"
 
 initData = {"conW":[[[[0]]]]}
 #trainlag = 4
@@ -120,7 +120,7 @@ class Player:
                 boards = [g.board for g in games]
                 boards = ch2FeedBoards(boards)
                 #print(boards)
-                evals = self.sess.run(self.model.y, feed_dict={self.model.x:boards, self.model.y_:numpy.zeros((boards.shape[0],1)), self.model.keep_prob:1.0})               
+                evals = self.model.y.eval(session=self.sess,feed_dict={self.model.x:boards, self.model.keep_prob:1.0})               
                 if self.color == -1:
                     evals = 2000 - evals
                 #print(evals)
@@ -176,7 +176,7 @@ class Player:
                 
                 boards = [g.board for g in gamelist]
                 preboards = ch2FeedBoards(boards)
-                preevals = self.sess.run(self.model.y, feed_dict={self.model.x:preboards, self.model.y_:numpy.zeros((preboards.shape[0],1)), self.model.keep_prob:1.0})
+                preevals = self.model.y.eval(session=self.sess,feed_dict={self.model.x:preboards, self.model.keep_prob:1.0})
                 if self.color == -1:
                     preevals = 2000 - preevals
                 preevals = issame * preevals
@@ -224,7 +224,7 @@ class Player:
         
         boards = [g.board for g in gamelist]
         preboards = ch2FeedBoards(boards)
-        preevals = self.sess.run(self.model.y, feed_dict={self.model.x:preboards, self.model.y_:numpy.zeros((preboards.shape[0],1)), self.model.keep_prob:1.0})
+        preevals = self.model.y.eval(session=self.sess,feed_dict={self.model.x:preboards, self.model.keep_prob:1.0})
         if self.color == -1:
             preevals = 2000 - preevals
         preevals = preevals.flatten().tolist()
@@ -421,7 +421,7 @@ def train_model(sess,model,boards,vals):
     max_epoch = 5
     ys = numpy.array(vals).reshape((-1,1))
     #print(ys)
-    evals = sess.run(model.y, feed_dict={model.x:boards, model.y_:numpy.zeros(ys.shape), model.keep_prob:1.0})
+    evals = model.y.eval(feed_dict={model.x:boards, model.keep_prob:1.0})
     #print(evals)
     if (evals[0][0] > 1000 + InitMaxValInt and ys[-1] > 1000) or (evals[0][0] < 1000 - InitMaxValInt and ys[-1] < 1000):
         return
@@ -447,7 +447,7 @@ def train_model(sess,model,boards,vals):
             #tmpy = sess.run(model.y,feed_dict={model.x:[trainboards[i]], model.y_:[[0]], model.keep_prob:1.0})
             #print(tmpy)
     #testtime1 = time.time()        
-    Aevals = sess.run(model.y, feed_dict={model.x:boards, model.y_:numpy.zeros(ys.shape), model.keep_prob:1.0})
+    Aevals = model.y.eval(feed_dict={model.x:boards, model.keep_prob:1.0})
     #print(Aevals)
     #print(time.time()-testtime1)
     #print(Aevals-evals)
