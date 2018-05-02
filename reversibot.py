@@ -14,15 +14,15 @@ maxd = 2
 FinalTurn = 53
 maxThreads = 2
 MaxTime = 45.6
-LearningRate = 0.0005
+LearningRate = 0.001
 isReceiveData = True
 isOnlineTrain = False
 InitMaxValInt = 500
 dataFile = "data/para2.data"
-BuffSize = 10000
+BuffSize = 12800
 BatchSize = 128
-Gamma = 0.99
-FirstTrainNum = 4
+Gamma = 0.98
+FirstTrainNum = 0
 
 initData = {"conW":[[[[0]]]]}
 #trainlag = 4
@@ -269,11 +269,10 @@ class Player:
                 movi += maxThreads
             if isTimeup() and nowd != maxd - 1:
                 break
-            random.seed(time.time())
-            randint = random.randint(1,100)
+            randf = random.random()
             #if self.isTrain:
                 #print("rand:"+str(randint))
-            if randint > int(100 * bestProb) and self.color != lastWinner:
+            if randf >  bestProb and self.color != lastWinner:
                 #print(self.color)
                 maxidx = random.randint(0,len(moves)-1)
             bestMov = moves[maxidx]
@@ -462,13 +461,7 @@ def train_model(sess,model):
     global replay_buffer
     buffsize = len(replay_buffer)
     train_time = time.time()
-    random.seed(train_time)
-    if buffsize >= BuffSize:
-        databatch = random.sample(replay_buffer,BatchSize-FirstTrainNum)
-        for i in range(FirstTrainNum):
-            databatch.append(replay_buffer[i])
-    else:
-        databatch = random.sample(replay_buffer,BatchSize)
+    databatch = random.sample(replay_buffer,BatchSize)
     boards = [d[0].board for d in databatch]
     colors = [d[1] for d in databatch]
     onehot_colors = numpy.zeros((BatchSize,2))
@@ -607,7 +600,6 @@ if __name__ == '__main__':
             player1 = Player(1,game,model,sess,True)
             player2 = Player(-1,game,model,sess,True)
             turn = 1
-            traingames = []
             testboards = []
             testboards.append(copy.copy(game.board))
             #print(str(turn)+": ")
@@ -615,8 +607,7 @@ if __name__ == '__main__':
             while not game.isEnd():
                 bestMov,bestVal,_, = player1.searchPlace(turn)
                 game.place(bestMov[0],bestMov[1],player1.color)
-                #perceive(sess,model,game,player1.color)
-                traingames.append((copy.deepcopy(game),player1.color))
+                perceive(sess,model,game,player1.color)
                 testboards.append(copy.copy(game.board))
                 #print(str(turn)+": ")
                 #print(game.board)
@@ -627,17 +618,13 @@ if __name__ == '__main__':
                     break
                 bestMov,bestVal,_, = player2.searchPlace(turn)              
                 game.place(bestMov[0],bestMov[1],player2.color)
-                #perceive(sess,model,game,player2.color)
-                traingames.append((copy.deepcopy(game),player2.color))
+                perceive(sess,model,game,player2.color)
                 testboards.append(copy.copy(game.board))
                 #print(str(turn)+": ")
                 #print(game.board)
                 '''print(bestMov)
                 print(bestVal)'''
                 turn += 1
-            traingames = traingames[-1::-1]
-            for game,color in traingames:
-                perceive(sess,model,game,color)
             testboards = ch2FeedBoards(testboards)
             Q_colors = model.Q_colors.eval(feed_dict={model.x:testboards, model.keep_prob:1.0})
             print(Q_colors)
